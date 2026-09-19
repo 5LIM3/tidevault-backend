@@ -1,0 +1,5 @@
+node_modules/
+.env
+tidevault.db
+tidevault.db-wal
+tidevault.db-shm

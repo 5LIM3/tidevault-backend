@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TideVault Admin</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{--bg:#0b0d14;--panel:#12141d;--border:#232636;--text:#e8e9ee;--muted:#8b8fa3;--violet:#8b5cf6;--green:#34d399;--red:#f87171;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:24px;}
+  h1{font-size:20px;margin:0 0 20px;}
+  .login-box{max-width:340px;margin:80px auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:24px;}
+  .login-box h2{margin-top:0;font-size:16px;}
+  input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:#0e101a;color:var(--text);font-size:14px;margin-bottom:10px;}
+  button{cursor:pointer;border:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;}
+  .btn-primary{background:var(--violet);color:#fff;width:100%;}
+  .btn-approve{background:var(--green);color:#04231a;margin-right:6px;}
+  .btn-decline{background:var(--red);color:#2a0a0a;}
+  .tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .tab{padding:8px 14px;border-radius:8px;background:var(--panel);border:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--muted);}
+  .tab.active{background:var(--violet);color:#fff;border-color:var(--violet);}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;}
+  th{color:var(--muted);font-weight:600;background:#0e101a;}
+  tr:last-child td{border-bottom:none;}
+  .msg{color:var(--muted);font-size:13px;margin-bottom:12px;}
+  .hidden{display:none;}
+  code{background:#0e101a;padding:2px 6px;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div id="loginView" class="login-box">
+  <h2>TideVault Admin</h2>
+  <input type="password" id="adminPassword" placeholder="Admin password">
+  <button class="btn-primary" id="loginBtn">Log In</button>
+  <div class="msg" id="loginMsg"></div>
+</div>
+
+<div id="dashView" class="hidden">
+  <h1>TideVault Admin</h1>
+  <div class="tabs">
+    <div class="tab active" data-tab="deposits">Pending Deposits</div>
+    <div class="tab" data-tab="withdrawals">Pending Withdrawals</div>
+  </div>
+  <div class="msg" id="dashMsg"></div>
+  <table id="dataTable">
+    <thead id="tableHead"></thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<script>
+  const API_BASE = location.origin + '/api';
+  let adminToken = null;
+  let currentTab = 'deposits';
+
+  const loginView = document.getElementById('loginView');
+  const dashView = document.getElementById('dashView');
+  const loginMsg = document.getElementById('loginMsg');
+  const dashMsg = document.getElementById('dashMsg');
+  const tableHead = document.getElementById('tableHead');
+  const tableBody = document.getElementById('tableBody');
+
+  document.getElementById('loginBtn').addEventListener('click', login);
+  document.getElementById('adminPassword').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+  async function login() {
+    const password = document.getElementById('adminPassword').value;
+    loginMsg.textContent = 'Logging in...';
+    try {
+      const res = await fetch(API_BASE + '/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login failed');
+      adminToken = data.token;
+      loginView.classList.add('hidden');
+      dashView.classList.remove('hidden');
+      loadTab('deposits');
+    } catch (err) {
+      loginMsg.textContent = err.message;
+    }
+  }
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      loadTab(tab.dataset.tab);
+    });
+  });
+
+  async function loadTab(tab) {
+    currentTab = tab;
+    dashMsg.textContent = 'Loading...';
+    tableBody.innerHTML = '';
+    try {
+      const path = tab === 'deposits' ? '/admin/deposits?status=pending' : '/admin/withdrawals?status=pending';
+      const res = await fetch(API_BASE + path, { headers: { Authorization: 'Bearer ' + adminToken } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load');
+
+      if (tab === 'deposits') {
+        renderDeposits(data.deposits);
+      } else {
+        renderWithdrawals(data.withdrawals);
+      }
+      dashMsg.textContent = '';
+    } catch (err) {
+      dashMsg.textContent = err.message;
+    }
+  }
+
+  function renderDeposits(deposits) {
+    tableHead.innerHTML = '<tr><th>User</th><th>Method</th><th>Amount</th><th>Proof</th><th>Requested</th><th>Action</th></tr>';
+    if (!deposits.length) {
+      tableBody.innerHTML = '<tr><td colspan="6" style="color:var(--muted)">No pending deposits.</td></tr>';
+      return;
+    }
+    tableBody.innerHTML = deposits.map(d => `
+      <tr>
+        <td>@${d.userUsername}<br><span style="color:var(--muted);font-size:11px;">ID ${d.userHarborId}</span></td>
+        <td>${d.method.toUpperCase()}${d.network ? ' (' + d.network + ')' : ''}</td>
+        <td>$${Number(d.amount_usd).toFixed(2)}</td>
+        <td><code>${escapeHtml(d.proof_note || '')}</code></td>
+        <td>${d.created_at}</td>
+        <td>
+          <button class="btn-approve" onclick="review('deposits', ${d.id}, 'approve')">Approve</button>
+          <button class="btn-decline" onclick="review('deposits', ${d.id}, 'decline')">Decline</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function renderWithdrawals(withdrawals) {
+    tableHead.innerHTML = '<tr><th>User</th><th>Method</th><th>Amount</th><th>Destination</th><th>Requested</th><th>Action</th></tr>';
+    if (!withdrawals.length) {
+      tableBody.innerHTML = '<tr><td colspan="6" style="color:var(--muted)">No pending withdrawals.</td></tr>';
+      return;
+    }
+    tableBody.innerHTML = withdrawals.map(w => `
+      <tr>
+        <td>@${w.userUsername}<br><span style="color:var(--muted);font-size:11px;">ID ${w.userHarborId}</span></td>
+        <td>${w.method.toUpperCase()}</td>
+        <td>$${Number(w.amount_usd).toFixed(2)}</td>
+        <td><code>${escapeHtml(w.destination)}</code></td>
+        <td>${w.created_at}</td>
+        <td>
+          <button class="btn-approve" onclick="review('withdrawals', ${w.id}, 'approve')">Mark Sent</button>
+          <button class="btn-decline" onclick="review('withdrawals', ${w.id}, 'decline')">Decline &amp; Refund</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function review(kind, id, action) {
+    try {
+      const res = await fetch(`${API_BASE}/admin/${kind}/${id}/${action}`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + adminToken },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Action failed');
+      loadTab(currentTab);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // expose for inline onclick
+  window.review = review;
+</script>
+</body>
+</html>

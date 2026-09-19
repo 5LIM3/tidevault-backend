@@ -1,0 +1,24 @@
+# Fly.io config for the TideVault backend.
+# Before your first deploy: `fly apps create your-app-name` and then
+# change `app = "tidevault-backend"` below to match. See DEPLOY.md.
+
+app = "tidevault-backend"
+primary_region = "iad"
+
+[build]
+
+[env]
+  PORT = "4000"
+  NODE_ENV = "production"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
