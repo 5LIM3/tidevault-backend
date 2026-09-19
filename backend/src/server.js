@@ -1,3 +1,7 @@
+process.on('uncaughtException', (err) => {
+  console.error('[UNCAUGHT — kept alive for debugging]', err.message);
+});
+
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
