@@ -4,8 +4,10 @@ console.log('[DEBUG] DATABASE_URL length:', (process.env.DATABASE_URL || '').len
 console.log('[DEBUG] first char code:', (process.env.DATABASE_URL || '').charCodeAt(0));
 console.log('[DEBUG] first 15 chars raw:', JSON.stringify((process.env.DATABASE_URL || '').slice(0, 15)));
 
+const cleanDatabaseUrl = (process.env.DATABASE_URL || '').trim().replace(/^\uFEFF/, '');
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: cleanDatabaseUrl,
   ssl: { rejectUnauthorized: false },
 });
 
