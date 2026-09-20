@@ -1,3 +1,7 @@
+if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is required in production');
+}
+
 // Local dev / no DATABASE_URL -> SQLite file on disk.
 // Production with DATABASE_URL set (e.g. a Supabase connection string) -> Postgres.
 // Both expose the same { get, all, run, nowExpr } interface so routes don't
