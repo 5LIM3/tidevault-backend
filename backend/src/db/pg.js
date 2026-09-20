@@ -1,7 +1,6 @@
 const { Pool } = require('pg');
 
-console.log('[DEBUG] FULL VALUE:', JSON.stringify(process.env.DATABASE_URL || ''));
-console.log('[DEBUG] EXPECTED:  ', JSON.stringify('postgresql://postgres.pnxhwjxfjaltzhfzbfiv:Tatianafenty09/.@aws-0-eu-west-1.pooler.supabase.com:6543/postgres'));
+
 
 const cleanDatabaseUrl = (process.env.DATABASE_URL || '').trim().replace(/^\uFEFF/, '');
 
