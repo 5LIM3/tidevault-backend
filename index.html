@@ -86,6 +86,7 @@
     color:var(--text-mid);
     font-size:13.5px; font-weight:500;
     transition:background .15s, color .15s;
+    cursor:pointer;
   }
   .nav-item:hover{background:rgba(139,92,246,0.08); color:var(--text-hi);}
   .nav-item.active{
@@ -154,7 +155,29 @@
     background:var(--panel); border:1px solid var(--panel-border-soft);
     display:flex; align-items:center; justify-content:center;
     color:var(--text-mid); position:relative;
+    cursor:pointer;
   }
+  .notif-wrap{position:relative;}
+  .notif-dropdown{
+    display:none; position:absolute; top:46px; right:0; width:308px; max-height:380px;
+    overflow-y:auto; background:var(--panel); border:1px solid var(--panel-border-soft);
+    border-radius:var(--radius-md); box-shadow:0 24px 60px -18px rgba(0,0,0,0.65);
+    z-index:95; padding:8px;
+  }
+  .notif-dropdown.open{display:block;}
+  .notif-dropdown-head{
+    font-size:12.5px; font-weight:700; color:var(--text-hi);
+    padding:8px 8px 10px; border-bottom:1px solid var(--panel-border-soft); margin-bottom:4px;
+  }
+  .notif-empty{font-size:12.5px; color:var(--text-low); padding:20px 10px; text-align:center; line-height:1.5;}
+  .notif-item{display:flex; gap:10px; padding:9px 8px; border-radius:8px; transition:background .15s; cursor:default;}
+  .notif-item:hover{background:rgba(139,92,246,0.08);}
+  .notif-item-icon{
+    width:28px; height:28px; border-radius:8px; flex-shrink:0;
+    background:rgba(139,92,246,0.14); display:flex; align-items:center; justify-content:center; font-size:12.5px;
+  }
+  .notif-item-text{font-size:12px; color:var(--text-hi); line-height:1.4;}
+  .notif-item-time{font-size:10.5px; color:var(--text-low); margin-top:2px;}
   .balance-pill{
     display:flex; flex-direction:column; align-items:flex-end; gap:1px;
     padding:6px 14px; border-radius:10px;
@@ -367,13 +390,24 @@
   .act-time{margin-left:auto; font-size:10.5px; color:var(--text-low); flex-shrink:0;}
 
   .news-list{display:flex; flex-direction:column; gap:14px;}
-  .news-row{display:flex; gap:11px;}
+  .news-row{
+    display:flex; gap:11px; cursor:pointer; color:inherit; text-decoration:none;
+    border-radius:8px; margin:-6px; padding:6px; transition:background .15s;
+  }
+  .news-row:hover{background:rgba(139,92,246,0.08);}
+  .news-row:hover .news-title{color:var(--violet-2);}
   .news-icon{
     width:32px; height:32px; border-radius:9px; flex-shrink:0;
     background:rgba(139,92,246,0.12); display:flex; align-items:center; justify-content:center;
   }
-  .news-title{font-size:12.5px; font-weight:600; line-height:1.4;}
+  .news-title{font-size:12.5px; font-weight:600; line-height:1.4; transition:color .15s;}
   .news-time{font-size:10.5px; color:var(--text-low); margin-top:3px;}
+
+  @keyframes flashHighlight{
+    0%{box-shadow:0 0 0 2px var(--violet-2); background:rgba(139,92,246,0.14);}
+    100%{box-shadow:0 0 0 0 rgba(139,92,246,0); background:var(--bg-1);}
+  }
+  .flash-highlight{animation:flashHighlight 1.5s ease;}
 
   ::-webkit-scrollbar{width:8px; height:8px;}
   ::-webkit-scrollbar-thumb{background:var(--panel-border); border-radius:4px;}
@@ -487,9 +521,28 @@
   .data-badge.live{background:rgba(52,211,153,0.14); color:var(--green);}
   .data-badge .dot{width:5px; height:5px; border-radius:50%; background:currentColor;}
 
+  .menu-toggle{
+    display:none; width:38px; height:38px; border-radius:10px; flex-shrink:0;
+    background:var(--panel); border:1px solid var(--panel-border-soft);
+    align-items:center; justify-content:center; color:var(--text-hi); cursor:pointer;
+  }
+  .sidebar-backdrop{
+    display:none; position:fixed; inset:0; background:rgba(4,5,12,0.65);
+    z-index:108;
+  }
+  .sidebar-backdrop.open{display:block;}
+
   @media (max-width:1100px){
     .shell{grid-template-columns:1fr;}
-    .sidebar{display:none;}
+    .menu-toggle{display:flex;}
+    .sidebar{
+      position:fixed; top:0; left:0; bottom:0; width:260px; max-width:82vw;
+      transform:translateX(-100%);
+      transition:transform .25s ease;
+      z-index:110;
+      box-shadow:24px 0 60px -20px rgba(0,0,0,0.65);
+    }
+    .sidebar.open{transform:translateX(0);}
     .grid-2, .grid-3, .grid-bottom{grid-template-columns:1fr;}
     .stat-row{grid-template-columns:1fr 1fr;}
     .hero{text-align:center; justify-content:center;}
@@ -582,16 +635,29 @@
     <div class="invite-card">
       <strong>Invite &amp; Earn</strong>
       <p>Earn 20% of your friends' fees for life, paid straight to your wallet.</p>
-      <button class="invite-btn">Invite now</button>
+      <button class="invite-btn" id="inviteNowBtn">Invite now</button>
     </div>
   </aside>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
   <!-- MAIN -->
   <main class="main" id="mainTop">
     <div class="topbar">
+      <div class="menu-toggle" id="menuToggleBtn" aria-label="Open menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </div>
       <div class="ticker"><div class="ticker-track" id="ticker"></div></div>
       <div class="top-actions">
-        <div class="icon-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="dot"></span></div>
+        <div class="notif-wrap">
+          <div class="icon-btn" id="notifBtn" aria-label="Notifications"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="dot" id="notifDot"></span></div>
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-dropdown-head">Notifications</div>
+            <div class="notif-list" id="notifList">
+              <div class="notif-empty">Log in to see your notifications.</div>
+            </div>
+          </div>
+        </div>
         <div id="balancePill" class="balance-pill" style="display:none;">
           <span class="balance-label">Balance</span>
           <span class="balance-amt" id="balanceAmt">$0.00</span>
@@ -2395,14 +2461,17 @@
   ];
 
   function renderNews(items) {
-    document.getElementById('newsList').innerHTML = items.map(item => `
-      <div class="news-row">
+    document.getElementById('newsList').innerHTML = items.map(item => {
+      const link = item.url || ('https://news.google.com/search?q=' + encodeURIComponent(item.title));
+      return `
+      <a class="news-row" href="${link}" target="_blank" rel="noopener">
         <div class="news-icon">📰</div>
-        <div>${item.url
-          ? `<div class="news-title"><a href="${item.url}" target="_blank" rel="noopener" style="color:inherit; text-decoration:none;">${escapeHtml(item.title)}</a></div>`
-          : `<div class="news-title">${escapeHtml(item.title)}</div>`}
-        <div class="news-time">${item.timeLabel} · ${escapeHtml(item.src)}</div></div>
-      </div>`).join('');
+        <div>
+          <div class="news-title">${escapeHtml(item.title)}</div>
+          <div class="news-time">${item.timeLabel} · ${escapeHtml(item.src)}</div>
+        </div>
+      </a>`;
+    }).join('');
   }
 
   function renderFallbackNews() {
@@ -2551,6 +2620,96 @@
   });
   document.getElementById('deleteAccountOverlay').addEventListener('click', (e) => {
     if (e.target.id === 'deleteAccountOverlay') e.target.classList.remove('open');
+  });
+
+  // ---------- Mobile sidebar toggle ----------
+  const sidebarEl = document.querySelector('.sidebar');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+  const menuToggleBtn = document.getElementById('menuToggleBtn');
+
+  function openSidebar() {
+    sidebarEl.classList.add('open');
+    sidebarBackdrop.classList.add('open');
+  }
+  function closeSidebar() {
+    sidebarEl.classList.remove('open');
+    sidebarBackdrop.classList.remove('open');
+  }
+  menuToggleBtn.addEventListener('click', () => {
+    sidebarEl.classList.contains('open') ? closeSidebar() : openSidebar();
+  });
+  sidebarBackdrop.addEventListener('click', closeSidebar);
+  // Close the drawer automatically once a destination is picked on mobile
+  document.querySelectorAll('.nav-item').forEach(item => item.addEventListener('click', closeSidebar));
+
+  // ---------- Invite & Earn ----------
+  document.getElementById('inviteNowBtn').addEventListener('click', () => {
+    closeSidebar();
+    requireLoginThen(() => {
+      setActiveNav(document.getElementById('navProfile'));
+      showPage('profile');
+      setTimeout(() => {
+        const row = document.getElementById('copyReferralBtn')?.closest('.deposit-address-row');
+        if (row) {
+          row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          row.classList.add('flash-highlight');
+          setTimeout(() => row.classList.remove('flash-highlight'), 1500);
+        }
+      }, 50);
+    });
+  });
+
+  // ---------- Notification bell ----------
+  function timeAgo(dateInput) {
+    const secs = Math.max(0, Math.floor((Date.now() - new Date(dateInput).getTime()) / 1000));
+    if (secs < 60) return 'Just now';
+    const mins = Math.floor(secs / 60);
+    if (mins < 60) return mins + ' min ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    return Math.floor(hrs / 24) + 'd ago';
+  }
+
+  function renderNotifications() {
+    const list = document.getElementById('notifList');
+    if (!authToken) {
+      list.innerHTML = '<div class="notif-empty">Log in to see your notifications.</div>';
+      return;
+    }
+    const txRes = window._lastTxRes;
+    const txs = (txRes && txRes.transactions) ? txRes.transactions.slice(0, 8) : [];
+    if (!txs.length) {
+      list.innerHTML = '<div class="notif-empty">No notifications yet. Account activity like claims, deposits, and referral bonuses will show up here.</div>';
+      return;
+    }
+    list.innerHTML = txs.map(t => {
+      const info = txDisplayInfo(t);
+      const pos = Number(t.amount) >= 0;
+      return `<div class="notif-item">
+        <div class="notif-item-icon">${info.icon}</div>
+        <div>
+          <div class="notif-item-text">${info.label} <span style="color:${pos ? 'var(--green)' : 'var(--red)'};">${pos ? '+' : ''}${fmtUsd(t.amount)}</span></div>
+          <div class="notif-item-time">${timeAgo(t.createdAt)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('notifBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const dd = document.getElementById('notifDropdown');
+    const willOpen = !dd.classList.contains('open');
+    if (willOpen) {
+      renderNotifications();
+      document.getElementById('notifDot').style.display = 'none';
+    }
+    dd.classList.toggle('open', willOpen);
+  });
+  document.addEventListener('click', (e) => {
+    const dd = document.getElementById('notifDropdown');
+    if (dd.classList.contains('open') && !e.target.closest('.notif-wrap')) {
+      dd.classList.remove('open');
+    }
   });
 
   document.getElementById('deleteConfirmBtn').addEventListener('click', async () => {
